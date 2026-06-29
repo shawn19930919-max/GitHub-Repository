@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
+import DeleteProductButton from '@/components/DeleteProductButton'
 
 type Product = {
   id: string
@@ -139,7 +140,9 @@ export default async function ProductsPage() {
 
                       <td
                         className={`px-3 py-3 font-semibold ${
-                          product.auto_update ? 'text-blue-600' : 'text-gray-500'
+                          product.auto_update
+                            ? 'text-blue-600'
+                            : 'text-gray-500'
                         }`}
                       >
                         {product.auto_update ? '自動更新' : '手動'}
@@ -150,12 +153,19 @@ export default async function ProductsPage() {
                       </td>
 
                       <td className="px-3 py-3 text-right">
-                        <Link
-                          href={`/products/${product.id}/edit`}
-                          className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700"
-                        >
-                          編輯
-                        </Link>
+                        <div className="flex justify-end gap-2">
+                          <Link
+                            href={`/products/${product.id}/edit`}
+                            className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700"
+                          >
+                            編輯
+                          </Link>
+
+                          <DeleteProductButton
+                            productId={product.id}
+                            productName={product.name}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}
