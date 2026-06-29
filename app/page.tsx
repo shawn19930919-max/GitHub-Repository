@@ -149,28 +149,37 @@ export default async function HomePage() {
           快速查看所有商品的最新收盤價、漲跌與漲跌幅。紅色代表上漲，綠色代表下跌。
         </p>
 
-        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3">
+        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Link
             href="/products/new"
             className="rounded-2xl bg-black p-4 text-center text-white shadow"
-          >
+        >
             ＋ 新增商品
-          </Link>
+        </Link>
 
-          <Link
-            href="/records/new"
-            className="rounded-2xl bg-blue-600 p-4 text-center text-white shadow"
-          >
-            ＋ 新增收盤價
-          </Link>
+        <Link
+          href="/records/new"
+          className="rounded-2xl bg-blue-600 p-4 text-center text-white shadow"
+        >
+          ＋ 新增收盤價
+        </Link>
 
-          <Link
-            href="/history"
-            className="rounded-2xl bg-white p-4 text-center font-semibold text-gray-900 shadow"
-          >
-            歷史價格表
-          </Link>
-        </div>
+        <Link
+          href="/update-logs"
+          className="rounded-2xl bg-white p-4 text-center font-semibold text-gray-900 shadow"
+        >
+          更新紀錄
+        </Link>
+
+        <Link
+          href="/history"
+          className="rounded-2xl bg-white p-4 text-center font-semibold text-gray-900 shadow"
+        >
+          歷史價格表
+        </Link>
+      </div>
+
+     
 
         <div className="mb-6">
           <UpdatePricesButton />

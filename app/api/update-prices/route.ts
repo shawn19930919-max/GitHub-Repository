@@ -19,15 +19,30 @@ type TwelveDataEodResponse = {
 }
 
 export async function POST(request: NextRequest) {
-  const requestSecret = request.headers.get('x-update-secret')
-  const expectedSecret = process.env.UPDATE_PRICES_SECRET
+  const requestSecret = request.headers.get('x-update-secret')?.trim()
+  const expectedSecret = process.env.UPDATE_PRICES_SECRET?.trim()
 
-  if (!expectedSecret || requestSecret !== expectedSecret) {
+  if (!expectedSecret) {
+    return NextResponse.json(
+      { error: 'Server secret is missing' },
+      { status: 500 }
+    )
+  }
+
+  if (!requestSecret) {
+    return NextResponse.json(
+      { error: 'Request secret is missing' },
+      { status: 401 }
+    )
+  }
+
+  if (requestSecret !== expectedSecret) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
     )
   }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const twelveDataApiKey = process.env.TWELVE_DATA_API_KEY
@@ -63,6 +78,19 @@ export async function POST(request: NextRequest) {
 
   const results = []
 
+  async function logFailure(product: Product, errorMessage: string) {
+    await supabase.from('update_logs').insert({
+      product_id: product.id,
+      product_name: product.name,
+      api_symbol: product.api_symbol,
+      success: false,
+      record_date: null,
+      close_price: null,
+      error_message: errorMessage,
+      source: 'Twelve Data',
+    })
+  }
+
   for (const product of (products || []) as Product[]) {
     if (!product.api_symbol) continue
 
@@ -78,34 +106,49 @@ export async function POST(request: NextRequest) {
       const data = (await response.json()) as TwelveDataEodResponse
 
       if (!response.ok || data.status === 'error' || data.error || data.message) {
+        const errorMessage = data.error || data.message || 'API request failed'
+
+        await logFailure(product, errorMessage)
+
         results.push({
           product: product.name,
           symbol: product.api_symbol,
           success: false,
-          error: data.error || data.message || 'API request failed',
+          error: errorMessage,
         })
+
         continue
       }
 
       if (!data.datetime || !data.close) {
+        const errorMessage = 'Missing datetime or close price'
+
+        await logFailure(product, errorMessage)
+
         results.push({
           product: product.name,
           symbol: product.api_symbol,
           success: false,
-          error: 'Missing datetime or close price',
+          error: errorMessage,
         })
+
         continue
       }
 
       const closePrice = Number(data.close)
 
       if (Number.isNaN(closePrice) || closePrice <= 0) {
+        const errorMessage = 'Invalid close price'
+
+        await logFailure(product, errorMessage)
+
         results.push({
           product: product.name,
           symbol: product.api_symbol,
           success: false,
-          error: 'Invalid close price',
+          error: errorMessage,
         })
+
         continue
       }
 
@@ -124,14 +167,28 @@ export async function POST(request: NextRequest) {
         )
 
       if (upsertError) {
+        await logFailure(product, upsertError.message)
+
         results.push({
           product: product.name,
           symbol: product.api_symbol,
           success: false,
           error: upsertError.message,
         })
+
         continue
       }
+
+      await supabase.from('update_logs').insert({
+        product_id: product.id,
+        product_name: product.name,
+        api_symbol: product.api_symbol,
+        success: true,
+        record_date: data.datetime,
+        close_price: closePrice,
+        error_message: null,
+        source: 'Twelve Data',
+      })
 
       results.push({
         product: product.name,
@@ -141,11 +198,16 @@ export async function POST(request: NextRequest) {
         success: true,
       })
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+
+      await logFailure(product, errorMessage)
+
       results.push({
         product: product.name,
         symbol: product.api_symbol,
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
       })
     }
   }
