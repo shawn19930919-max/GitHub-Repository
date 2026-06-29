@@ -61,6 +61,30 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  let body: {
+    batchIndex?: number
+    batchSize?: number
+  } = {}
+
+  try {
+    body = await request.json()
+  } catch {
+    body = {}
+  }
+
+  const batchIndex =
+    typeof body.batchIndex === 'number' && body.batchIndex >= 0
+      ? body.batchIndex
+      : 0
+
+  const batchSize =
+    typeof body.batchSize === 'number' && body.batchSize > 0
+      ? body.batchSize
+      : 6
+
+  const startIndex = batchIndex * batchSize
+  const endIndex = startIndex + batchSize - 1
+
   const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
   const { data: products, error: productsError } = await supabase
@@ -68,6 +92,8 @@ export async function POST(request: NextRequest) {
     .select('id, name, api_symbol, auto_update')
     .eq('auto_update', true)
     .not('api_symbol', 'is', null)
+    .order('created_at', { ascending: true })
+    .range(startIndex, endIndex)
 
   if (productsError) {
     return NextResponse.json(
@@ -213,6 +239,10 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({
+    batchIndex,
+    batchSize,
+    startIndex,
+    endIndex,
     updatedCount: results.filter((result) => result.success).length,
     totalCount: results.length,
     results,
