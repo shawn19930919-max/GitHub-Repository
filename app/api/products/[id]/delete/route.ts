@@ -39,24 +39,36 @@ export async function DELETE(
 
   if (priceRecordsError) {
     return NextResponse.json(
-      { error: priceRecordsError.message },
+      { error: `刪除歷史價格失敗：${priceRecordsError.message}` },
       { status: 500 }
     )
   }
 
-  const { error: productError } = await supabase
+  const { data: deletedProducts, error: productError } = await supabase
     .from('products')
     .delete()
     .eq('id', id)
+    .select('id, name')
 
   if (productError) {
     return NextResponse.json(
-      { error: productError.message },
+      { error: `刪除商品失敗：${productError.message}` },
       { status: 500 }
+    )
+  }
+
+  if (!deletedProducts || deletedProducts.length === 0) {
+    return NextResponse.json(
+      {
+        error:
+          '沒有刪到商品。可能是 Supabase delete policy 沒開，或商品 ID 不正確。',
+      },
+      { status: 400 }
     )
   }
 
   return NextResponse.json({
     success: true,
+    deletedProduct: deletedProducts[0],
   })
 }

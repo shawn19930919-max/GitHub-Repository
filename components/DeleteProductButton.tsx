@@ -37,7 +37,7 @@ export default function DeleteProductButton({
       }
 
       alert('刪除成功')
-      router.refresh()
+      window.location.reload()
     } catch (error) {
       alert('刪除失敗，請稍後再試')
     } finally {
