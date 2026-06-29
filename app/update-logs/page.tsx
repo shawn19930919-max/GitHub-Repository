@@ -159,7 +159,16 @@ export default async function UpdateLogsPage({ searchParams }: PageProps) {
                   {logs.map((log) => (
                     <tr key={log.id} className="border-b last:border-b-0">
                       <td className="px-3 py-3 text-gray-500">
-                        {new Date(log.created_at).toLocaleString('zh-TW')}
+                        {new Date(log.created_at).toLocaleString('zh-TW', {
+                          timeZone: 'Asia/Taipei',
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false,
+                        })} 
                       </td>
 
                       <td className="px-3 py-3 font-semibold">
