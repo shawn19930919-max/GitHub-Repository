@@ -13,12 +13,40 @@ type UpdateLog = {
   created_at: string
 }
 
-export default async function UpdateLogsPage() {
-  const { data, error } = await supabase
+type PageProps = {
+  searchParams: Promise<{
+    status?: string
+    keyword?: string
+  }>
+}
+
+export default async function UpdateLogsPage({ searchParams }: PageProps) {
+  const params = await searchParams
+
+  const status = params.status || 'all'
+  const keyword = params.keyword?.trim() || ''
+
+  let query = supabase
     .from('update_logs')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(100)
+
+  if (status === 'success') {
+    query = query.eq('success', true)
+  }
+
+  if (status === 'failed') {
+    query = query.eq('success', false)
+  }
+
+  if (keyword) {
+    query = query.or(
+      `product_name.ilike.%${keyword}%,api_symbol.ilike.%${keyword}%`
+    )
+  }
+
+  const { data, error } = await query
 
   if (error) {
     return (
@@ -38,6 +66,13 @@ export default async function UpdateLogsPage() {
 
   const logs = (data || []) as UpdateLog[]
 
+  const filterLinkClass = (active: boolean) =>
+    `rounded-xl px-4 py-2 text-sm font-semibold shadow ${
+      active
+        ? 'bg-black text-white'
+        : 'bg-white text-gray-900'
+    }`
+
   return (
     <main className="min-h-screen bg-gray-100 p-4">
       <div className="mx-auto max-w-5xl">
@@ -52,6 +87,58 @@ export default async function UpdateLogsPage() {
         </p>
 
         <section className="mt-6 rounded-2xl bg-white p-4 shadow">
+          <form className="mb-4 flex flex-col gap-3 md:flex-row">
+            <input
+              name="keyword"
+              defaultValue={keyword}
+              placeholder="搜尋商品名稱或 Symbol，例如 QQQ、AAPL"
+              className="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm"
+            />
+
+            <input type="hidden" name="status" value={status} />
+
+            <button
+              type="submit"
+              className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white"
+            >
+              搜尋
+            </button>
+
+            <Link
+              href="/update-logs"
+              className="rounded-xl bg-gray-100 px-5 py-3 text-center text-sm font-semibold text-gray-700"
+            >
+              清除
+            </Link>
+          </form>
+
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Link
+              href={keyword ? `/update-logs?status=all&keyword=${keyword}` : '/update-logs?status=all'}
+              className={filterLinkClass(status === 'all')}
+            >
+              全部
+            </Link>
+
+            <Link
+              href={keyword ? `/update-logs?status=success&keyword=${keyword}` : '/update-logs?status=success'}
+              className={filterLinkClass(status === 'success')}
+            >
+              只看成功
+            </Link>
+
+            <Link
+              href={keyword ? `/update-logs?status=failed&keyword=${keyword}` : '/update-logs?status=failed'}
+              className={filterLinkClass(status === 'failed')}
+            >
+              只看失敗
+            </Link>
+          </div>
+
+          <div className="mb-4 text-sm text-gray-500">
+            目前顯示：{logs.length} 筆
+          </div>
+
           {logs.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full border-collapse text-sm">
@@ -118,7 +205,7 @@ export default async function UpdateLogsPage() {
             </div>
           ) : (
             <p className="text-sm text-gray-500">
-              目前尚無更新紀錄。
+              沒有符合條件的更新紀錄。
             </p>
           )}
         </section>
