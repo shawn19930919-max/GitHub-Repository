@@ -40,9 +40,9 @@ export default function EditProductPage() {
         .from('products')
         .select('*')
         .eq('id', productId)
-        .single()
+        .maybeSingle()
 
-      if (error) {
+      if (error || !data) {
         alert(`讀取商品失敗：${error.message}`)
         setIsLoading(false)
         return
