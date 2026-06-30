@@ -42,8 +42,8 @@ export default function EditProductPage() {
         .eq('id', productId)
         .maybeSingle()
 
-      if (error || !data) {
-        alert(`讀取商品失敗：${error.message}`)
+      if (error) {
+         alert(`讀取商品失敗：${error.message}`)
         setIsLoading(false)
         return
       }
