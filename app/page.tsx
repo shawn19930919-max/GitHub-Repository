@@ -2,6 +2,9 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import UpdatePricesButton from '@/components/UpdatePricesButton'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type Product = {
   id: string
   name: string

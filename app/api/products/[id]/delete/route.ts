@@ -21,16 +21,28 @@ export async function DELETE(
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json(
-      { error: 'Supabase environment variables are missing' },
+      { error: 'Supabase service role environment variables are missing' },
       { status: 500 }
     )
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey)
+  const supabase = createClient(supabaseUrl, serviceRoleKey)
+
+  const { error: updateLogsError } = await supabase
+    .from('update_logs')
+    .delete()
+    .eq('product_id', id)
+
+  if (updateLogsError) {
+    return NextResponse.json(
+      { error: `刪除更新紀錄失敗：${updateLogsError.message}` },
+      { status: 500 }
+    )
+  }
 
   const { error: priceRecordsError } = await supabase
     .from('price_records')
@@ -60,8 +72,7 @@ export async function DELETE(
   if (!deletedProducts || deletedProducts.length === 0) {
     return NextResponse.json(
       {
-        error:
-          '沒有刪到商品。可能是 Supabase delete policy 沒開，或商品 ID 不正確。',
+        error: '刪除失敗：沒有刪到商品，可能是商品 ID 不正確。',
       },
       { status: 400 }
     )
